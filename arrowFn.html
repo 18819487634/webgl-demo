@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script>
+
+    var obj = {};
+    obj.fn = function(){
+        let arrow = (...rest) =>{
+            console.log('入参列表 : ', arguments); //外层的入参列表   arguments是类数组对象，没有push等这种方法，只有length属性，可以通过index获取值
+            console.log('剩余参数 : ', rest); //使用剩余参数表示法获得的自身入参列表    rest是数组对象
+
+        }
+        arrow(4,5,6)
+    }
+
+    obj.fn(1,2,3)
+    /**
+     * 输出结果：
+     * 入参列表 :  Arguments(3) [1, 2, 3, callee: ƒ, Symbol(Symbol.iterator): ƒ]
+     * 剩余参数 :  (3) [4, 5, 6]
+     * 
+    */
+    
+</script>
+<body>
+    <canvas id="c"></canvas>
+</body>
+</html>
