@@ -1,0 +1,18 @@
+WebGL流程
+1. 初始化阶段
+    创建所有着色器和程序并寻找参数位置
+    创建缓冲并上传顶点数据
+    创建纹理并上传纹理数据
+2. 渲染阶段
+    清空并设置视图和其他全局状态（开启深度检测，剔除等等）
+    对于想要绘制的每个物体：
+        调用gl.useProgram使用需要的程序
+        设置物体的属性变量：
+            为每个属性调用gl.bindBuffer, gl.vertexAttribPointer, gl.enableVertexAttribArray
+        设置物体的全局变量：
+            为每个全局变量调用gl.uniformXXX
+            调用gl.activeTexture和gl.bindTexture设置纹理到纹理单元
+        调用gl.drawArrays或gl.drawElements
+
+
+
