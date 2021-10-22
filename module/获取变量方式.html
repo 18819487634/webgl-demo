@@ -1,0 +1,74 @@
+<script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+
+<script>
+    var canvas = document.querySelector("#canvas");
+    var gl = canvas.getContext("webgl");
+
+    // 初始化时获取全局变量
+    var u_worldViewProjectionLoc = gl.getUniformLocation(program, 'u_worldViewProjection');
+    var u_lightWorldPosLoc = gl.getUniformLocation(program, "u_lightWorldPos");
+    var u_worldLoc = gl.getUniformLocation(program, "u_world");
+    var u_viewInverseLoc = gl.getUniformLocation(program, "u_viewInverse");
+    var u_worldInverseTransposeLoc = gl.getUniformLocation(program, "u_worldInverseTranspose");
+    var u_diffuseLoc = gl.getUniformLocation(program, "u_diffuse");
+
+    // 初始化时获取属性
+    var a_positionLoc = gl.getAttribLocation(program, "a_position");
+    var a_normalLoc = gl.getAttribLocation(program, "a_normal");
+
+    
+    // 初始化或绘制时需要的全局变量值
+    var someWorldViewProjectionMat = computerWorldViewProjectionMatrix();
+    var lightWorldPos = [100, 200, 300];
+    var worldMat = computerWorldMatrix();
+    var viewInverseMat = computeInverseViewMatrix();
+    var worldInverseTransposeMat = computerWorldInverseTransposeMatrix();
+    var diffuseTextureUnit = 1;
+
+    // 绘制
+    gl.useProgram(program);
+
+    // 设置所有的缓冲和属性
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.enableVertexAttribArray(a_positionLoc);
+    gl.vertexAttribPointer(a_positionLoc, positionNumComponents, gl.FLOAT, false, 0, 0);
+    
+    // 设置使用的纹理
+    gl.activeTexture(tl.TEXTUREO + diffuseTextureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, diffuseTexture);
+
+    // 设置所有的全局变量
+    gl.uniformMatrix4fv(u_worldViewProjectionLoc, false, someWorldViewProjectionMat);
+    gl.uniform3fv(u_lightWorldPosLoc, lightWorldPos);
+    gl.uniform4fv(u_diffuseLoc, diffuseTextureUnit);
+
+/*-------------------------------------------------------------------------------------------*/
+// 以上获取和使用数据的方式需要写很多代码，可以简化该过程，一次获取WebGL中所有的属性和全局变量的位置，然后再一个方法中设置他们
+
+// 初始化
+var  uniformSetters = webglUtils.createUniformSetters(gl, program);
+var attribSetters = webglUtils.createAttributeSetters(gl, program);
+var attribs = {
+    a_position: { buffer: positionBuffer, numComponents:3, },
+    a_normal: { buffer: normalBuffer, numComponents:3, },
+    a_texcoord: { buffer: texcoordBuffer, numComponents: 2, },
+}
+
+// 初始化或绘制时需要的全局变量值
+var uniforms = {
+    u_worldViewProjection: computeWorldViewProjectionMatrix(),
+    u_lightWorldPos: [100, 200, 300],
+    u_world: computerMatrix(),
+    u_viewInverse: computerInverseViewMatrix(),
+    u_worldInverseTranspose: computeWorldInverseTransposeMatrix()
+}
+
+// 绘制时
+gl.useProgram(program);
+
+// 设置所有的缓冲和属性
+webglUtils.setAttributes(attribSetters, attribs);
+
+// 设置需要的全局变量和纹理
+webglUtils.setUniforms(uniformSetters, uniforms);
+</script>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三维纹理</title>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+</body>
+<script id="vertex-shader-2d" type="notjs">
+    attribute vec4 a_position;
+    attribute vec2 a_texcoord;
+
+    uniform mat4 u_matrix;
+
+    varying vec2 v_texcoord;
+    void main() {
+        gl_position = u_matrix * a_position;
+        v_texcoord = a_texcoord;
+    }
+</script>
+<script id="fragment-shader-2d" type="notjs">
+    precision mediump float;
+    <!-- 从顶点着色器传入的值 -->
+    varying vec2 v_texcoord;
+    uniform sampler2D u_texture;
+    void main() {
+        gl_FragColor = texture2D(u_texture, v_texcoord);
+    }
+
+
+
+
+    
+</script>
+</html>
