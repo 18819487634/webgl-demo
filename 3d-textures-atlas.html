@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>每个面设置不同的图像</title>
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+</body>
+<script id="vertex-shader-3d" type="x-shader/x-vertex">
+  attribute vec4 a_position;
+  attribute vec2 a_texcoord;
+  // 4x4矩阵
+  uniform mat4 u_matrix;
+  // 给片段着色器传值
+  varying vec2 v_texcoord;
+  void main() {
+    // 将位置和矩阵相乘
+    gl_Position = u_matrix * a_position;
+    // 将文本坐标传给片段着色器
+    v_texcoord = a_texcoord;
+  }
+</script>
+<script id="fragment-shader-3d" type="x-shader/x-fragment">
+  precision mediump float;
+  // 顶点着色器传入的值
+  varying vec2 v_texcoord;
+  // 文本坐标
+  uniform sampler2D u_texture;
+  void main() {
+    gl_FragColor = texture2D(u_texture, v_texcoord);
+  }
+</script>
+<script src="https://webglfundamentals.org/webgl/resources/webgl-utils.js"></script>
+<script src="js/m4.js"></script>
+
+<script>
+  function main() {
+    var canvas = document.querySelector("#canvas");
+    var gl = canvas.getContext("wengl");
+    if(!gl) {
+      return;
+    }
+    // 创建着色器程序
+    var program = webglUtils.createProgramFromScripts(gl, ["vertex-shader-3d", "fragment-shader-3d"]);
+    
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    var texcoordLocation = gl.getAttribLocation(program, "a_texcoord");
+
+    var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+    var textureLocation = gl.getUniformLocation(program, "u_texture");
+
+    // 创建缓冲区
+    var positionBuffer = gl.createBuffer();
+    // 绑定到ARRAY_BUFFER
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    // 把位置放进缓冲
+    setGeometry(gl);
+
+    // 为矩形提供纹理坐标
+    var texcoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer);
+    // 设置纹理
+    setTexcoords(gl);
+
+    // 创建纹理
+    var texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    // 用1x1个蓝色像素填充纹理
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0, 0, 255, 255]));
+    // 异步加载图片
+    var image = new Image();
+    image.src = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg.pconline.com.cn%2Fimages%2Fphotoblog%2F5%2F1%2F8%2F4%2F5184960%2F20078%2F9%2F1186628299295.jpg&refer=http%3A%2F%2Fimg.pconline.com.cn&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=jpeg?sec=1637477120&t=9738b0394adf9e5c7c06ae926455cc54";
+    image.addEventListener("load", function() {
+      // 图片加载完成，拷贝到纹理中
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      // 判断图像宽高是否是2的幂
+      if(isPowerOf2(image.width) && isPowerOf2(image.height)) {
+        // 是2的幂，用贴图
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        // 不是2的幂，关闭贴图并设置包裹模式为到边缘
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+    })
+    // 按位与运算判断入参是否是2的幂
+    function isPowerOf2(value) {
+      return (value & (value - 1)) == 0;
+    }
+
+    // 角度转弧度
+    function detToRad(d) {
+      return d * Math.PI / 180;
+    }
+
+    var fieldOfViewRadians = detToRad(60);
+    var modelXRotaitonRadians = detToRad(0);
+    var modelYRotationRadians = detToRad(0);
+
+    // 获取开始时间
+    var then = 0;
+    requestAnimationFrame(drawScene);
+    
+    // 绘制场景
+    function drawScene(time) {
+      // 转换成秒
+      time *= 0.001;
+
+      // 当前时间减去前一个时间
+      var deltaTime = time - then;
+      // 当前时间作为下一帧的时间
+      then = time;
+      // 调整画布大小以适配其显示大小
+      webglUtils.resizeCanvasToDisplaySize(gl.canvas);
+
+      // 告诉webgl怎么从裁剪空间转换成像素
+      gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+
+      gl.enable(gl.CULL_FACE);
+      gl.enable(gl.DEPTH_TEST);
+
+      // 旋转动画
+      modelYRotationRadians += -0.7 * deltaTime;
+      modelXRotaitonRadians += -0.4 * deltaTime;
+
+      // 清除画布和深度缓冲区
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      // 着色器调用
+      gl.useProgram(program);
+
+      // 开启位置属性
+      gl.enableVertexAttribArray(positionLocation);
+
+      // 绑定位置缓冲
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+      // 告诉位置属性怎么从位置缓冲中取数据
+      var size = 3; // 每次迭代三个组件
+      var type = gl.FLOAT; // 数据类型为32位浮点数
+      var normalize = false;  // 不标准化数据
+      var stride = 0;
+      var offset = 0; // 从缓冲区的开头开始
+      gl.vertexAttribPointer(positionLocation, size, type, normalize, stride, offset);
+
+      // 开启纹理属性
+      gl.enableVertexAttribArray(texcoordLocation);
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, texcoordBuffer)
+
+      // 告诉纹理属性怎么从纹理缓冲中获取数据
+      var size = 2;
+      var type = gl.FLOAT;
+      var normalize = false;
+      var stride = 0;
+      var offset = 0;
+      gl.vertexAttribPointer(texcoordLocation, size, type, normalize, stride, offset);
+
+      // 计算投影矩阵
+      var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+      var projectionMatrix = m4.perspective(fieldOfViewRadians, aspect, 1, 2000);
+
+      var cameraPosition = [0, 0, 2];
+      var up = [0, 1, 0];
+      var target = [0, 0, 0];
+
+      // 计算相机矩阵
+      var cameraMatrix = m4.lookAt(cameraPosition, target, up);
+
+      // 从相机矩阵制作视图矩阵
+      var viewMatrix = m4.inverse(cameraMatrix);
+
+      var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
+
+      var matrix = m4.xRotate(viewProjectionMatrix, modelXRotaitonRadians);
+      matrix = m4.yRotate(matrix, modelYRotationRadians);
+
+      // 设置矩阵
+      gl.uniformMatrix4fv(matrixLocation, false, matrix);
+
+      // 告诉着色器u_texture使用纹理单元0
+      gl.uniform1i(textureLocation, 0);
+
+      // 绘制几何图形
+      gl.drawScene(gl.TRIANGLES, 0, 6 * 6);
+      requestAnimationFrame(drawScene);
+    }
+
+    // 用定义多维数据集的值填充缓冲区。
+    function setGeometry(gl) {
+      var positions = new Float32Array(
+        [
+        -0.5, -0.5,  -0.5,
+        -0.5,  0.5,  -0.5,
+        0.5, -0.5,  -0.5,
+        -0.5,  0.5,  -0.5,
+        0.5,  0.5,  -0.5,
+        0.5, -0.5,  -0.5,
+
+        -0.5, -0.5,   0.5,
+        0.5, -0.5,   0.5,
+        -0.5,  0.5,   0.5,
+        -0.5,  0.5,   0.5,
+        0.5, -0.5,   0.5,
+        0.5,  0.5,   0.5,
+
+        -0.5,   0.5, -0.5,
+        -0.5,   0.5,  0.5,
+        0.5,   0.5, -0.5,
+        -0.5,   0.5,  0.5,
+        0.5,   0.5,  0.5,
+        0.5,   0.5, -0.5,
+
+        -0.5,  -0.5, -0.5,
+        0.5,  -0.5, -0.5,
+        -0.5,  -0.5,  0.5,
+        -0.5,  -0.5,  0.5,
+        0.5,  -0.5, -0.5,
+        0.5,  -0.5,  0.5,
+
+        -0.5,  -0.5, -0.5,
+        -0.5,  -0.5,  0.5,
+        -0.5,   0.5, -0.5,
+        -0.5,  -0.5,  0.5,
+        -0.5,   0.5,  0.5,
+        -0.5,   0.5, -0.5,
+
+        0.5,  -0.5, -0.5,
+        0.5,   0.5, -0.5,
+        0.5,  -0.5,  0.5,
+        0.5,  -0.5,  0.5,
+        0.5,   0.5, -0.5,
+        0.5,   0.5,  0.5,
+
+        ]);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+    }
+  }
+  main();
+</script>
+</html>

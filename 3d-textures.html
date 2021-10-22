@@ -94,22 +94,38 @@ function main() {
   gl.bindTexture(gl.TEXTURE_2D, texture);
   // Fill the texture with a 1x1 blue pixel.
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-                new Uint8Array([0, 0, 255, 255]));
+                new Uint8Array([100, 0, 100, 100]));
   // Asynchronously load an image
   var image = new Image();
   image.crossOrigin = "anonymous";
   // image.src = "./texture.png"
   // image.src = "https://webglfundamentals.org/webgl/resources/f-texture.png";
-  image.src = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg1.qjy168.com%2Fprovide%2F2013%2F05%2F14%2F4247911_20130514091635.jpg&refer=http%3A%2F%2Fimg1.qjy168.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=jpeg?sec=1637464093&t=a8567f476d8f1bf95e31a4e5fe9ea297";
+  image.src = "https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg.pconline.com.cn%2Fimages%2Fphotoblog%2F5%2F1%2F8%2F4%2F5184960%2F20078%2F9%2F1186628299295.jpg&refer=http%3A%2F%2Fimg.pconline.com.cn&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=jpeg?sec=1637477120&t=9738b0394adf9e5c7c06ae926455cc54";
 
 
   image.addEventListener('load', function() {
-    // Now that the image has loaded make copy it to the texture.
+    // 图像加载完成，把图像拷贝到纹理
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
-    gl.generateMipmap(gl.TEXTURE_2D);
-  });
+    // 检查没饿维度是否是2的幂
+    console.log(image.width)
+    console.log(image.height)
+    console.log(isPowerOf2(image.width))
+    if(isPowerOf2(image.width) && isPowerOf2(image.height)) {
+      // 是2的幂，一般用贴图
+      gl.generateMipmap(gl.TEXTURE_2D);
+    } else {
+      // 不是2的幂，关闭贴图并设置包过模式为到边缘
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    }
 
+  });
+  // 按位与运算判断入参是否是2的幂
+  function isPowerOf2(value) {
+    return (value & (value - 1)) == 0;
+  }
 
   function radToDeg(r) {
     return r * 180 / Math.PI;
@@ -130,7 +146,7 @@ function main() {
   // Draw the scene.
   function drawScene(now) {
     // Convert to seconds
-    now *= 0.001;
+    now *= 0.0005;
     // Subtract the previous time from the current time
     var deltaTime = now - then;
     // Remember the current time for the next frame.
